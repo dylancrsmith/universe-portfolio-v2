@@ -6,12 +6,118 @@ body {
   margin: 0;
   overflow: hidden;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #111827 0, #020617 40%, #000000 100%);
+  background: #000;
   color: #f9fafb;
 }
 
+/* === CANVASES === */
+
+/* 2D warp stars behind everything */
+canvas#warp-canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 3D universe (sun + planets) */
 canvas#universe {
   position: fixed;
   inset: 0;
   display: block;
+  z-index: 1;
+}
+
+/* === SIMPLE OVERLAY (stars still visible behind) === */
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    circle at top,
+    rgba(15, 23, 42, 0.75),
+    rgba(0, 0, 0, 0.55)
+  );
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+
+#overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#overlay-inner {
+  text-align: center;
+}
+
+#title {
+  font-size: 1.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0 0 0.75rem;
+}
+
+#subtitle {
+  font-size: 0.9rem;
+  color: #cbd5f5;
+  margin-bottom: 1.6rem;
+}
+
+/* Enter button – clean but not overkill */
+
+#enter-button {
+  padding: 0.9rem 3.2rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  background: linear-gradient(135deg, #2563eb, #020617);
+  color: #e5f0ff;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 22px rgba(59, 130, 246, 0.7),
+    0 0 60px rgba(15, 23, 42, 0.8);
+  transition:
+    transform 0.15s ease-out,
+    box-shadow 0.15s ease-out,
+    background 0.2s ease-out,
+    border-color 0.2s ease-out;
+}
+
+#enter-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.35), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+#enter-button:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow:
+    0 0 28px rgba(59, 130, 246, 0.9),
+    0 0 90px rgba(37, 99, 235, 0.7);
+  border-color: rgba(224, 231, 255, 1);
+}
+
+#enter-button:hover::before {
+  opacity: 1;
+}
+
+#enter-button:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    0 0 18px rgba(59, 130, 246, 0.6),
+    0 0 50px rgba(15, 23, 42, 0.8);
 }
