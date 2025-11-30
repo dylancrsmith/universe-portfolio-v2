@@ -1,39 +1,39 @@
-import * as THREE from "https://unpkg.com/three@0.164.0/build/three.module.js";
+import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 
-let renderer, scene, camera;
+export const scene = new THREE.Scene();
 
-export function initScene() {
-  const canvas = document.getElementById("universe");
+const canvas = document.getElementById('universe');
 
-  // Renderer
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
+export const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.outputEncoding = THREE.sRGBEncoding;
 
-  // Scene
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x020312);
+// Camera
+export const camera = new THREE.PerspectiveCamera(
+  60,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  20000
+);
 
-  // Camera
-  camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-  camera.position.set(0, 0, 15);
+// Start above & back, looking into space
+camera.position.set(0, 350, 1300);
+camera.lookAt(0, 0, -3000);
 
-  window.addEventListener("resize", onResize);
+// Dim ambient light for a bit of base visibility
+const ambient = new THREE.AmbientLight(0x406080, 0.3);
+scene.add(ambient);
 
-  return { scene, camera, renderer };
-}
-
-export function animate() {
-  requestAnimationFrame(animate);
-  renderer.render(scene, camera);
-}
-
-function onResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+export function setupResize() {
+  window.addEventListener('resize', () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
 }
