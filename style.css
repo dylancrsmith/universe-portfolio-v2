@@ -121,3 +121,39 @@ canvas#universe {
     0 0 18px rgba(59, 130, 246, 0.6),
     0 0 50px rgba(15, 23, 42, 0.8);
 }
+
+#planet-panel {
+  position: fixed;
+  top: 50%;
+  right: 40px;
+  width: 350px;
+  max-height: 70vh;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+  padding: 25px;
+  color: white;
+  font-family: monospace;
+  transform: translate(120%, -50%); /* offscreen & vertically centered */
+  transition: transform 0.6s ease, opacity 0.4s ease;
+  z-index: 30;
+  box-shadow: 0 0 25px rgba(0,0,0,0.4);
+  overflow-y: auto;
+  opacity: 0;
+}
+
+#planet-panel.show {
+  transform: translate(0%, -50%);
+  opacity: 1;
+}
+
+#planet-panel h1 {
+  font-size: 24px;
+  margin-bottom: 12px;
+  color: #00ffcc;
+}
+
+#planet-panel p {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
