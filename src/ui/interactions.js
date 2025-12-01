@@ -20,6 +20,10 @@ let panelContentEl = null;
 // prevent re-clicking during zoom
 let isZooming = false;
 
+// camera pose BEFORE zooming to a planet (for Back)
+let prePlanetPos = null;
+let prePlanetTarget = null;
+
 // ===== CAMERA FOLLOW (orbit after zoom) =====
 const cameraFollowData = {
   targetPlanet: null,
@@ -30,9 +34,6 @@ const cameraFollowData = {
   isOrbiting: false,
   orbitBlend: 0,
 };
-
-// overview location when clicking "Back"
-const OVERVIEW_OFFSET = new THREE.Vector3(0, 400, 900);
 
 // ========= SETUP =========
 export function setupInteractions(camera, planets, domElement, sun) {
@@ -96,45 +97,67 @@ function hideBackButton() {
   backBtn.style.pointerEvents = "none";
 }
 
-// get current camera look target
+// approximate current look target from camera orientation
 function getCurrentLookTarget() {
-  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cameraRef.quaternion);
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(
+    cameraRef.quaternion
+  );
   return cameraRef.position.clone().add(dir);
 }
 
-// ========= BACK ACTION =========
+// ========= BACK ACTION: reverse to pre-zoom pose =========
 function onBackClick() {
-  if (!sunRef) return;
+  if (!cameraRef) return;
 
+  // allow clicking planets again
   isZooming = false;
 
-  hidePlanetPanel();
-
+  // stop orbit mode
   cameraFollowData.isOrbiting = false;
   cameraFollowData.targetPlanet = null;
   cameraFollowData.orbitBlend = 0;
 
-  const sunPos = sunRef.position.clone();
+  // hide panel
+  hidePlanetPanel();
+
   const startPos = cameraRef.position.clone();
   const startTarget = getCurrentLookTarget();
-  const targetPos = sunPos.clone().add(OVERVIEW_OFFSET);
-  const endTarget = sunPos.clone();
+
+  // if we somehow don't have a stored pose, fall back to a basic overview
+  let targetPos, endTarget;
+  if (prePlanetPos && prePlanetTarget) {
+    targetPos = prePlanetPos.clone();
+    endTarget = prePlanetTarget.clone();
+  } else if (sunRef) {
+    const sunPos = sunRef.position.clone();
+    targetPos = sunPos.clone().add(new THREE.Vector3(0, 400, 900));
+    endTarget = sunPos;
+  } else {
+    targetPos = new THREE.Vector3(0, 350, 1300);
+    endTarget = new THREE.Vector3(0, 0, -3000);
+  }
 
   const tmp = { t: 0 };
+  gsap.killTweensOf(cameraRef.position);
 
   gsap.to(tmp, {
     t: 1,
-    duration: 2.2,
+    duration: 2.0,
     ease: "power2.inOut",
-
     onUpdate: () => {
+      // straight interp from planet view -> stored pre-planet view
       cameraRef.position.lerpVectors(startPos, targetPos, tmp.t);
 
-      const lookTarget = new THREE.Vector3().lerpVectors(startTarget, endTarget, tmp.t);
+      const lookTarget = new THREE.Vector3().lerpVectors(
+        startTarget,
+        endTarget,
+        tmp.t
+      );
       cameraRef.lookAt(lookTarget);
     },
-
-    onComplete: () => hideBackButton(),
+    onComplete: () => {
+      hideBackButton();
+    },
   });
 }
 
@@ -157,8 +180,11 @@ function onPointerMove(e) {
     hovered = hit;
 
     if (hovered) {
-      hovered.material.emissiveIntensity = hovered.userData.baseEmissive * 2.2;
-      hovered.scale.copy(hovered.userData.baseScale).multiplyScalar(1.12);
+      hovered.material.emissiveIntensity =
+        hovered.userData.baseEmissive * 2.2;
+      hovered.scale
+        .copy(hovered.userData.baseScale)
+        .multiplyScalar(1.12);
       domRef.style.cursor = "pointer";
     } else {
       domRef.style.cursor = "default";
@@ -188,6 +214,10 @@ function onPlanetClick(e) {
   const hit = raycaster.intersectObjects(planetsRef, false)[0];
   if (!hit) return;
 
+  // store camera pose BEFORE zoom, so Back can reverse to this
+  prePlanetPos = cameraRef.position.clone();
+  prePlanetTarget = getCurrentLookTarget();
+
   isZooming = true;
   warpToPlanet(hit.object);
 }
@@ -214,9 +244,9 @@ function warpToPlanet(planet) {
     onUpdate: () => {
       const livePos = planet.getWorldPosition(new THREE.Vector3());
       const stopDistance = cameraFollowData.orbitRadius * 0.75;
-      const targetPos = livePos.clone().sub(
-        approachDir.clone().multiplyScalar(stopDistance)
-      );
+      const targetPos = livePos
+        .clone()
+        .sub(approachDir.clone().multiplyScalar(stopDistance));
 
       cameraRef.position.lerpVectors(start, targetPos, temp.t);
       cameraRef.lookAt(livePos);
@@ -299,9 +329,11 @@ export function updateInteractions() {
     cameraFollowData.orbitAngle += cameraFollowData.speed;
 
     const idealPos = new THREE.Vector3(
-      pPos.x + Math.cos(cameraFollowData.orbitAngle) * cameraFollowData.orbitRadius,
+      pPos.x +
+        Math.cos(cameraFollowData.orbitAngle) * cameraFollowData.orbitRadius,
       pPos.y + cameraFollowData.height,
-      pPos.z + Math.sin(cameraFollowData.orbitAngle) * cameraFollowData.orbitRadius
+      pPos.z +
+        Math.sin(cameraFollowData.orbitAngle) * cameraFollowData.orbitRadius
     );
 
     cameraRef.position.lerp(idealPos, 0.06 * cameraFollowData.orbitBlend);

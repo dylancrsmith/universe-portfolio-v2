@@ -129,7 +129,9 @@ canvas#universe {
   width: 350px;
   max-height: 70vh;
   background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.75);
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+
   border-radius: 18px;
   padding: 25px;
   color: white;
