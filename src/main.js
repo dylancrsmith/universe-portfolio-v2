@@ -4,6 +4,7 @@ import { createSun } from './universe/sun.js';
 import { createPlanets, updatePlanets } from './universe/planets.js';
 import { setupUI, updateUI } from './ui/ui.js';
 import { initWarpStars, updateWarpStars } from './universe/warpStars.js';
+import { setupInteractions, updateInteractions } from './ui/interactions.js';
 
 setupResize();
 
@@ -15,8 +16,11 @@ const planets = createPlanets(scene, sun);
 // 2D warp starfield
 initWarpStars();
 
-// UI overlay
+// UI overlay (enter button, intro camera)
 setupUI(camera, sun);
+
+// Hover interactions (planets glow + scale on hover)
+setupInteractions(camera, planets, renderer.domElement);
 
 let lastTime = 0;
 
@@ -27,7 +31,7 @@ function animate(time) {
   const delta = (time - lastTime) / 1000;
   lastTime = time;
 
-  // Sun
+  // Sun animation
   if (sun) {
     sun.rotation.y += 0.002;
 
@@ -42,23 +46,24 @@ function animate(time) {
     }
   }
 
-  // 3D starfield drift
-  if (farStars) {
-    farStars.rotation.y += 0.00003;
-  }
+  // Starfield drift
+  if (farStars) farStars.rotation.y += 0.00003;
   if (nearStars) {
     nearStars.rotation.y += 0.0001;
     nearStars.rotation.x += 0.00005;
   }
 
-  // Planets
+  // Planets movement
   updatePlanets(planets, sun);
 
-  // 2D warp stars
+  // 2D warp stars animation
   updateWarpStars(delta);
 
-  // Camera intro from UI
+  // UI intro camera movement
   updateUI(delta);
+
+  // Hover interactions (glow + scale)
+  updateInteractions(delta);
 
   renderer.render(scene, camera);
 }
