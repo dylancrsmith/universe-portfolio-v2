@@ -20,7 +20,7 @@ initWarpStars();
 setupUI(camera, sun);
 
 // Hover interactions (planets glow + scale on hover)
-setupInteractions(camera, planets, renderer.domElement);
+setupInteractions(camera, planets, renderer.domElement, sun);
 
 let lastTime = 0;
 
