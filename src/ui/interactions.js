@@ -312,8 +312,16 @@ function showPlanetPanel(name) {
       break;
   }
 
-  panelContentEl.innerHTML = html;
+  panelContentEl.innerHTML = ""; // clear before animation
+
   panelEl.classList.add("show");
+
+// Delay slightly so panel slides in before text animates:
+  setTimeout(() => {
+    hackerText(panelContentEl, html, 15);
+  }, 300);
+
+
 }
 
 function hidePlanetPanel() {
@@ -339,4 +347,42 @@ export function updateInteractions() {
     cameraRef.position.lerp(idealPos, 0.06 * cameraFollowData.orbitBlend);
     cameraRef.lookAt(pPos);
   }
+}
+function hackerText(element, text, speed = 12) {
+  const chars = "!<>-_\\/[]{}—=+*^?#________";
+  const lines = text.split("\n");
+  let revealed = "";
+  let lineIndex = 0;
+
+  function randomChar() {
+    return chars[Math.floor(Math.random() * chars.length)];
+  }
+
+  function revealLine() {
+    const line = lines[lineIndex];
+    let progress = 0;
+
+    const interval = setInterval(() => {
+      const display = line
+        .split("")
+        .map((ch, i) => (i < progress ? ch : randomChar()))
+        .join("");
+
+      element.innerHTML = revealed + display + "\n";
+      progress++;
+
+      if (progress > line.length) {
+        clearInterval(interval);
+        revealed += line + "\n";
+        lineIndex++;
+
+        if (lineIndex < lines.length) {
+          setTimeout(revealLine, 200);
+        }
+      }
+    }, speed);
+  }
+
+  element.innerHTML = "";
+  revealLine();
 }

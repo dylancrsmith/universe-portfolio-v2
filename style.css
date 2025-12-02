@@ -159,3 +159,10 @@ canvas#universe {
   margin-bottom: 12px;
   line-height: 1.5;
 }
+#planet-panel-content {
+  font-family: "JetBrains Mono", monospace;
+  color: #00ffcc;
+  text-shadow: 0 0 4px #00ffccaa;
+  white-space: pre-wrap;
+  line-height: 0.4;
+}
