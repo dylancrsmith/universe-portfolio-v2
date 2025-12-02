@@ -164,5 +164,58 @@ canvas#universe {
   color: #00ffcc;
   text-shadow: 0 0 4px #00ffccaa;
   white-space: pre-wrap;
-  line-height: 0.4;
+  line-height: 1.4;
+}
+/* --- TOP NAVIGATION BAR --- */
+
+#top-nav {
+  position: fixed;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 35px;
+  z-index: 50;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.nav-item {
+  font-family: "Inter", sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #ffffffcc;
+  cursor: pointer;
+  position: relative;
+  padding-bottom: 4px;
+  transition: color 0.25s ease;
+}
+
+/* Hover brightness */
+.nav-item:hover {
+  color: #ffffff;
+}
+
+/* Underline animation */
+.nav-item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  height: 2px;
+  background: white;
+  transition: width 0.25s ease;
+}
+
+.nav-item:hover::after {
+  width: 100%;
+}
+
+/* Make it visible */
+#top-nav.show {
+  opacity: 1;
+  pointer-events: auto;
 }

@@ -2,29 +2,32 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { gsap } from "https://cdn.skypack.dev/gsap@3.12.5";
 
+// Raycasting
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
+// References set at setup
 let cameraRef = null;
 let planetsRef = null;
 let domRef = null;
 let sunRef = null;
 
 let hovered = null;
-let backBtn = null;
 
-// panel
+// UI
+let topNav = null;
+let backBtn = null;
 let panelEl = null;
 let panelContentEl = null;
 
-// prevent re-clicking during zoom
+// Prevent double zooming
 let isZooming = false;
 
-// camera pose BEFORE zooming to a planet (for Back)
+// Save camera position before zoom (so Back can reverse)
 let prePlanetPos = null;
 let prePlanetTarget = null;
 
-// ===== CAMERA FOLLOW (orbit after zoom) =====
+// Orbit system
 const cameraFollowData = {
   targetPlanet: null,
   orbitAngle: 0,
@@ -32,31 +35,52 @@ const cameraFollowData = {
   height: 80,
   speed: 0.005,
   isOrbiting: false,
-  orbitBlend: 0,
+  orbitBlend: 0
 };
 
-// ========= SETUP =========
+// ====================== SETUP ======================
 export function setupInteractions(camera, planets, domElement, sun) {
   cameraRef = camera;
   planetsRef = planets;
   domRef = domElement;
   sunRef = sun;
 
+  topNav = document.getElementById("top-nav");
   panelEl = document.getElementById("planet-panel");
   panelContentEl = document.getElementById("planet-panel-content");
 
-  // Save base scale + emissive intensity for hover reset
-  planetsRef.forEach((p) => {
+  // Save base scale + emissive
+  planetsRef.forEach(p => {
     p.userData.baseScale = p.scale.clone();
     p.userData.baseEmissive = p.material.emissiveIntensity ?? 0.3;
   });
 
+  // Hover events
   domRef.addEventListener("pointermove", onPointerMove);
   domRef.addEventListener("pointerleave", clearHover);
+
+  // Click planet → zoom
   domRef.addEventListener("pointerdown", onPlanetClick);
+
+  // TOP NAV CLICK HANDLERS
+  document.querySelectorAll("#top-nav .nav-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const planetName = item.dataset.planet;
+      focusOnPlanet(planetName);    // ← fixed logic
+    });
+  });
 }
 
-// ========= BACK BUTTON =========
+// ====================== TOP NAV ======================
+export function showTopNav() {
+  if (topNav) topNav.classList.add("show");
+}
+
+export function hideTopNav() {
+  if (topNav) topNav.classList.remove("show");
+}
+
+// ====================== BACK BUTTON ======================
 function ensureBackButton() {
   if (backBtn) return;
 
@@ -72,13 +96,13 @@ function ensureBackButton() {
     border: "none",
     background: "rgba(0,0,0,0.7)",
     color: "#fff",
-    fontFamily: "system-ui",
-    fontSize: "14px",
     cursor: "pointer",
-    zIndex: "40",
+    fontFamily: "Inter, sans-serif",
+    fontSize: "14px",
+    zIndex: "50",
     opacity: "0",
     pointerEvents: "none",
-    transition: "opacity 0.3s ease",
+    transition: "opacity 0.35s ease"
   });
 
   backBtn.addEventListener("click", onBackClick);
@@ -87,91 +111,67 @@ function ensureBackButton() {
 
 function showBackButton() {
   ensureBackButton();
-  backBtn.style.opacity = "1";
+  backBtn.style.opacity = 1;
   backBtn.style.pointerEvents = "auto";
 }
 
 function hideBackButton() {
   if (!backBtn) return;
-  backBtn.style.opacity = "0";
+  backBtn.style.opacity = 0;
   backBtn.style.pointerEvents = "none";
 }
 
-// approximate current look target from camera orientation
+// Guess current look target
 function getCurrentLookTarget() {
-  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(
-    cameraRef.quaternion
-  );
+  const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cameraRef.quaternion);
   return cameraRef.position.clone().add(dir);
 }
 
-// ========= BACK ACTION: reverse to pre-zoom pose =========
+// ====================== BACK (reverse zoom) ======================
 function onBackClick() {
-  if (!cameraRef) return;
-
-  // allow clicking planets again
   isZooming = false;
 
-  // stop orbit mode
   cameraFollowData.isOrbiting = false;
   cameraFollowData.targetPlanet = null;
   cameraFollowData.orbitBlend = 0;
 
-  // hide panel
   hidePlanetPanel();
 
   const startPos = cameraRef.position.clone();
   const startTarget = getCurrentLookTarget();
 
-  // if we somehow don't have a stored pose, fall back to a basic overview
-  let targetPos, endTarget;
-  if (prePlanetPos && prePlanetTarget) {
-    targetPos = prePlanetPos.clone();
-    endTarget = prePlanetTarget.clone();
-  } else if (sunRef) {
-    const sunPos = sunRef.position.clone();
-    targetPos = sunPos.clone().add(new THREE.Vector3(0, 400, 900));
-    endTarget = sunPos;
-  } else {
-    targetPos = new THREE.Vector3(0, 350, 1300);
-    endTarget = new THREE.Vector3(0, 0, -3000);
-  }
+  const targetPos  = prePlanetPos    ? prePlanetPos.clone()    : new THREE.Vector3(0, 350, 1300);
+  const endTarget  = prePlanetTarget ? prePlanetTarget.clone() : new THREE.Vector3(0, 0, -3000);
 
   const tmp = { t: 0 };
-  gsap.killTweensOf(cameraRef.position);
 
   gsap.to(tmp, {
     t: 1,
     duration: 2.0,
     ease: "power2.inOut",
     onUpdate: () => {
-      // straight interp from planet view -> stored pre-planet view
       cameraRef.position.lerpVectors(startPos, targetPos, tmp.t);
-
-      const lookTarget = new THREE.Vector3().lerpVectors(
-        startTarget,
-        endTarget,
-        tmp.t
-      );
-      cameraRef.lookAt(lookTarget);
+      const look = new THREE.Vector3().lerpVectors(startTarget, endTarget, tmp.t);
+      cameraRef.lookAt(look);
     },
     onComplete: () => {
       hideBackButton();
-    },
+      showTopNav();
+    }
   });
 }
 
-// ========= HOVER =========
+// ====================== HOVER EFFECTS ======================
 function onPointerMove(e) {
   const rect = domRef.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  mouse.x = ((e.clientX - rect.left)/rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top)/rect.height) * 2 + 1;
 
   raycaster.setFromCamera(mouse, cameraRef);
-  const hits = raycaster.intersectObjects(planetsRef, false);
-  const hit = hits.length > 0 ? hits[0].object : null;
 
-  if (hit !== hovered) {
+  const hit = raycaster.intersectObjects(planetsRef, false)[0]?.object || null;
+
+  if (hovered !== hit) {
     if (hovered) {
       hovered.material.emissiveIntensity = hovered.userData.baseEmissive;
       hovered.scale.copy(hovered.userData.baseScale);
@@ -180,11 +180,8 @@ function onPointerMove(e) {
     hovered = hit;
 
     if (hovered) {
-      hovered.material.emissiveIntensity =
-        hovered.userData.baseEmissive * 2.2;
-      hovered.scale
-        .copy(hovered.userData.baseScale)
-        .multiplyScalar(1.12);
+      hovered.material.emissiveIntensity = hovered.userData.baseEmissive * 2.2;
+      hovered.scale.copy(hovered.userData.baseScale).multiplyScalar(1.12);
       domRef.style.cursor = "pointer";
     } else {
       domRef.style.cursor = "default";
@@ -197,161 +194,142 @@ function clearHover() {
     hovered.material.emissiveIntensity = hovered.userData.baseEmissive;
     hovered.scale.copy(hovered.userData.baseScale);
   }
-
   hovered = null;
   domRef.style.cursor = "default";
 }
 
-// ========= CLICK → ZOOM TO PLANET =========
+// ====================== CLICK → ZOOM INTO PLANET ======================
 function onPlanetClick(e) {
   if (isZooming) return;
 
   const rect = domRef.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  mouse.x = ((e.clientX - rect.left)/rect.width) * 2 - 1;
+  mouse.y = -((e.clientY - rect.top)/rect.height) * 2 + 1;
 
   raycaster.setFromCamera(mouse, cameraRef);
+
   const hit = raycaster.intersectObjects(planetsRef, false)[0];
   if (!hit) return;
 
-  // store camera pose BEFORE zoom, so Back can reverse to this
+  zoomToPlanet(hit.object);
+}
+
+// Used by nav clicks AND raycast clicks
+function zoomToPlanet(planet) {
+  if (!planet) return;
+
+  hideTopNav();
+
   prePlanetPos = cameraRef.position.clone();
   prePlanetTarget = getCurrentLookTarget();
 
   isZooming = true;
-  warpToPlanet(hit.object);
-}
-
-// ========= ZOOM + ORBIT =========
-function warpToPlanet(planet) {
-  gsap.killTweensOf(cameraRef.position);
 
   cameraFollowData.targetPlanet = planet;
   cameraFollowData.isOrbiting = false;
   cameraFollowData.orbitBlend = 0;
 
   const start = cameraRef.position.clone();
-  const planetPosAtClick = planet.getWorldPosition(new THREE.Vector3());
-  const approachDir = planetPosAtClick.clone().sub(start).normalize();
+  const planetPos = planet.getWorldPosition(new THREE.Vector3());
+  const direction = planetPos.clone().sub(start).normalize();
 
-  const temp = { t: 0 };
+  const tmp = { t: 0 };
 
-  gsap.to(temp, {
+  gsap.to(tmp, {
     t: 1,
     duration: 2.8,
     ease: "power2.out",
-
     onUpdate: () => {
       const livePos = planet.getWorldPosition(new THREE.Vector3());
-      const stopDistance = cameraFollowData.orbitRadius * 0.75;
-      const targetPos = livePos
-        .clone()
-        .sub(approachDir.clone().multiplyScalar(stopDistance));
+      const stopDist = cameraFollowData.orbitRadius * 0.75;
 
-      cameraRef.position.lerpVectors(start, targetPos, temp.t);
+      const targetPos = livePos.clone().sub(direction.clone().multiplyScalar(stopDist));
+
+      cameraRef.position.lerpVectors(start, targetPos, tmp.t);
       cameraRef.lookAt(livePos);
     },
-
     onComplete: () => {
       const livePos = planet.getWorldPosition(new THREE.Vector3());
       const rel = cameraRef.position.clone().sub(livePos);
+
       cameraFollowData.orbitAngle = Math.atan2(rel.z, rel.x);
 
       gsap.to(cameraFollowData, {
         orbitBlend: 1,
         duration: 1.8,
         ease: "power2.out",
-        onStart: () => (cameraFollowData.isOrbiting = true),
+        onStart: () => (cameraFollowData.isOrbiting = true)
       });
 
       showBackButton();
       showPlanetPanel(planet.name);
-    },
+    }
   });
 }
 
-// ========= PLANET PANEL =========
+// ====================== NAV → FOCUS PLANET ======================
+export function focusOnPlanet(name) {
+  if (isZooming) return;
+
+  const planet = planetsRef.find(p => p.name === name);
+  if (!planet) return;
+
+  zoomToPlanet(planet);
+}
+
+// ====================== PANEL ======================
 function showPlanetPanel(name) {
-  if (!panelEl || !panelContentEl) return;
+  let text = "";
 
-  let html = "";
-
-  switch (name) {
-    case "About Me":
-      html = `
-        <h1>ABOUT ME</h1>
-        <p>Hi, I'm Dylan — AI & Data Science student at MMU.</p>
-        <p>I build intelligent systems, automation tools, RL agents, and creative interfaces like this Universe Portfolio.</p>
-      `;
-      break;
-
-    case "Projects":
-      html = `
-        <h1>PROJECTS</h1>
-        <p>• RealEstateBot 2.0 — UK property lead generator</p>
-        <p>• NEAT Self-Driving Car Simulator</p>
-        <p>• IMDB Sentiment Analysis (NLP)</p>
-        <p>• Universe Portfolio</p>
-      `;
-      break;
-
-    case "CV":
-      html = `
-        <h1>CV</h1>
-        <p>View or download my CV:</p>
-        <a style="color:#00ffcc; cursor:pointer;">Download CV</a>
-      `;
-      break;
-
-    case "Contact":
-      html = `
-        <h1>CONTACT</h1>
-        <p>Email: dylan3002smith@gmail.com</p>
-        <p>GitHub: <a href="https://github.com/dylsmith17" target="_blank" style="color:#00ffcc;">dylsmith17</a></p>
-      `;
-      break;
+  if (name === "About Me") {
+    text = `
+Dylan Craddock-Smith
+AI & Data Science @ MMU
+Building intelligent systems, automation tools,
+RL agents & creative interfaces.
+    `;
   }
 
-  panelContentEl.innerHTML = ""; // clear before animation
+  if (name === "Projects") {
+    text = `
+Projects
+• RealEstateBot 2.0
+• NEAT Self-Driving Car
+• IMDB NLP Analysis
+• Universe Portfolio V2
+    `;
+  }
 
+  if (name === "CV") {
+    text = `
+CV
+Download link coming soon.
+    `;
+  }
+
+  if (name === "Contact") {
+    text = `
+Contact
+Email: dylan3002smith@gmail.com
+GitHub: dylsmith17
+    `;
+  }
+
+  panelContentEl.innerHTML = "";
   panelEl.classList.add("show");
 
-// Delay slightly so panel slides in before text animates:
-  setTimeout(() => {
-    hackerText(panelContentEl, html, 15);
-  }, 300);
-
-
+  setTimeout(() => hackerText(panelContentEl, text, 15), 250);
 }
 
 function hidePlanetPanel() {
-  if (panelEl) panelEl.classList.remove("show");
+  panelEl.classList.remove("show");
 }
 
-// ========= PER FRAME UPDATE =========
-export function updateInteractions() {
-  if (cameraFollowData.isOrbiting && cameraFollowData.targetPlanet) {
-    const p = cameraFollowData.targetPlanet;
-    const pPos = p.getWorldPosition(new THREE.Vector3());
-
-    cameraFollowData.orbitAngle += cameraFollowData.speed;
-
-    const idealPos = new THREE.Vector3(
-      pPos.x +
-        Math.cos(cameraFollowData.orbitAngle) * cameraFollowData.orbitRadius,
-      pPos.y + cameraFollowData.height,
-      pPos.z +
-        Math.sin(cameraFollowData.orbitAngle) * cameraFollowData.orbitRadius
-    );
-
-    cameraRef.position.lerp(idealPos, 0.06 * cameraFollowData.orbitBlend);
-    cameraRef.lookAt(pPos);
-  }
-}
+// ====================== HACKER TEXT ======================
 function hackerText(element, text, speed = 12) {
   const chars = "!<>-_\\/[]{}—=+*^?#________";
   const lines = text.split("\n");
-  let revealed = "";
+  let output = "";
   let lineIndex = 0;
 
   function randomChar() {
@@ -368,21 +346,36 @@ function hackerText(element, text, speed = 12) {
         .map((ch, i) => (i < progress ? ch : randomChar()))
         .join("");
 
-      element.innerHTML = revealed + display + "\n";
+      element.innerHTML = output + display + "\n";
       progress++;
 
       if (progress > line.length) {
         clearInterval(interval);
-        revealed += line + "\n";
+        output += line + "\n";
         lineIndex++;
-
-        if (lineIndex < lines.length) {
-          setTimeout(revealLine, 200);
-        }
+        if (lineIndex < lines.length) setTimeout(revealLine, 120);
       }
     }, speed);
   }
 
-  element.innerHTML = "";
   revealLine();
+}
+
+// ====================== ORBIT UPDATE ======================
+export function updateInteractions() {
+  if (!cameraFollowData.isOrbiting || !cameraFollowData.targetPlanet) return;
+
+  const p = cameraFollowData.targetPlanet;
+  const pos = p.getWorldPosition(new THREE.Vector3());
+
+  cameraFollowData.orbitAngle += cameraFollowData.speed;
+
+  const ideal = new THREE.Vector3(
+    pos.x + Math.cos(cameraFollowData.orbitAngle) * cameraFollowData.orbitRadius,
+    pos.y + cameraFollowData.height,
+    pos.z + Math.sin(cameraFollowData.orbitAngle) * cameraFollowData.orbitRadius
+  );
+
+  cameraRef.position.lerp(ideal, 0.06 * cameraFollowData.orbitBlend);
+  cameraRef.lookAt(pos);
 }

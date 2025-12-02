@@ -1,5 +1,6 @@
 import * as THREE from "https://unpkg.com/three@0.160.0/build/three.module.js";
 import { setWarpSpeed } from "../universe/warpStars.js";
+import { showTopNav } from "./interactions.js";   // ⭐ ADD THIS IMPORT ⭐
 
 let overlayEl;
 let enterBtn;
@@ -38,9 +39,9 @@ export function setupUI(camera, sun) {
     startPos.copy(cameraRef.position);
     targetPos.copy(sunRef.position).add(new THREE.Vector3(0, 400, 600));
 
-    // 🔥 warp punch: ramp speed up then back down
-    setWarpSpeed(10);                     // accelerate
-    setTimeout(() => setWarpSpeed(2), 1500); // back to cruise
+    // Warp effect
+    setWarpSpeed(10);
+    setTimeout(() => setWarpSpeed(2), 1500);
 
     // fade overlay out
     overlayEl.classList.add("hidden");
@@ -54,11 +55,19 @@ export function updateUI(deltaTime) {
   if (!introActive || !cameraRef || !sunRef) return;
 
   introT += deltaTime / introDuration;
+
+  // Intro COMPLETED
   if (introT >= 1) {
     introT = 1;
     introActive = false;
+
+    // ⭐ FIX: Show navigation bar when the intro finishes ⭐
+    showTopNav();
+
+    return;  // Stop updating camera
   }
 
+  // Interpolate camera
   cameraRef.position.lerpVectors(startPos, targetPos, introT);
   cameraRef.lookAt(sunRef.position);
 }
