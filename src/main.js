@@ -5,65 +5,73 @@ import { createPlanets, updatePlanets } from './universe/planets.js';
 import { setupUI, updateUI } from './ui/ui.js';
 import { initWarpStars, updateWarpStars } from './universe/warpStars.js';
 import { setupInteractions, updateInteractions } from './ui/interactions.js';
+import { setupPanels } from './ui/panels.js';
+
+// ⭐ Parallax import (you already added this)
+import { setupStarParallax, updateStarParallax } from "./ui/starParallax.js";
 
 setupResize();
 
-// World
+// 3D world
 const { farStars, nearStars } = createStarfield(scene);
+
+// ⭐ STEP 1: Setup parallax RIGHT AFTER creating stars
+setupStarParallax(renderer.domElement, farStars, nearStars);
+
 const sun = createSun(scene);
 const planets = createPlanets(scene, sun);
 
-// 2D warp starfield
+// Panels (right + left)
+setupPanels();
+
+// 2D warp layer
 initWarpStars();
 
-// UI overlay (enter button, intro camera)
+// UI overlay (enter button)
 setupUI(camera, sun);
 
-// Hover interactions (planets glow + scale on hover)
+// Hover + click + nav interactions
 setupInteractions(camera, planets, renderer.domElement, sun);
 
-let lastTime = 0;
-
-function animate(time) {
+let prev = 0;
+function animate(t) {
   requestAnimationFrame(animate);
 
-  const t = time * 0.001;
-  const delta = (time - lastTime) / 1000;
-  lastTime = time;
+  const dt = (t - prev) / 1000;
+  prev = t;
 
-  // Sun animation
-  if (sun) {
-    sun.rotation.y += 0.002;
+  // Sun anims
+  sun.rotation.y += 0.002;
 
-    if (sun.userData.corona) {
-      sun.userData.corona.material.uniforms.time.value = t;
-    }
+  if (sun.userData.corona) {
+    sun.userData.corona.material.uniforms.time.value = t * 0.001;
+  }
 
-    if (sun.userData.plasma) {
-      const plasma = sun.userData.plasma;
-      plasma.material.opacity = 0.3 + Math.sin(t * 3.0) * 0.2;
-      plasma.rotation.y += 0.001;
-    }
+  if (sun.userData.plasma) {
+    sun.userData.plasma.rotation.y += 0.001;
+    sun.userData.plasma.material.opacity = 0.3 + Math.sin(t * 0.004) * 0.2;
   }
 
   // Starfield drift
-  if (farStars) farStars.rotation.y += 0.00003;
-  if (nearStars) {
-    nearStars.rotation.y += 0.0001;
-    nearStars.rotation.x += 0.00005;
-  }
+  farStars.rotation.y += 0.00003;
+  nearStars.rotation.y += 0.0001;
 
-  // Planets movement
+  // ⭐ STEP 3: Update parallax effect every frame
+
+  
+  updateStarParallax();
+
+  // Planet movement
   updatePlanets(planets, sun);
 
-  // 2D warp stars animation
-  updateWarpStars(delta);
+  // Warp stars
+  updateWarpStars(dt);
 
-  // UI intro camera movement
-  updateUI(delta);
+  // UI intro motion
+  updateUI(dt);
 
-  // Hover interactions (glow + scale)
-  updateInteractions(delta);
+  // Camera orbit + interactions
+  updateInteractions(dt);
 
   renderer.render(scene, camera);
 }
