@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Universe Portfolio V2</title>
+
+    <!-- Fonts (optional, can remove if you like your current setup) -->
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+
+  <body>
+    <!-- Intro overlay -->
+    <div id="overlay">
+      <div id="overlay-inner">
+        <h1 id="title">Universe Portfolio</h1>
+        <p id="subtitle">
+          Explore my projects, CV, and story among the stars.
+        </p>
+        <button id="enter-button">Enter Portfolio</button>
+      </div>
+    </div>
+
+    <!-- 2D warp starfield -->
+    <canvas id="warp-canvas"></canvas>
+
+    <!-- 3D universe canvas -->
+    <canvas id="universe"></canvas>
+
+    <!-- Top navigation (planet shortcuts) -->
+    <nav id="top-nav">
+      <div class="nav-item" data-planet="About Me">ABOUT ME</div>
+      <div class="nav-item" data-planet="Projects">PROJECTS</div>
+      <div class="nav-item" data-planet="CV">CV</div>
+      <div class="nav-item" data-planet="Contact">CONTACT</div>
+    </nav>
+
+    <!-- Right info / projects list panel -->
+    <aside id="planet-panel">
+      <div id="planet-panel-content"></div>
+    </aside>
+
+    <!-- Left project detail panel (for Projects planet) -->
+    <aside id="project-detail">
+      <div id="project-detail-content"></div>
+    </aside>
+
+    <!-- Main JS entry -->
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,391 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #000;
+  color: #f9fafb;
+}
+
+/* === CANVASES === */
+
+/* 2D warp stars behind everything */
+canvas#warp-canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 3D universe (sun + planets) */
+canvas#universe {
+  position: fixed;
+  inset: 0;
+  display: block;
+  z-index: 1;
+}
+
+/* === SIMPLE OVERLAY (stars still visible behind) === */
+
+#overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    circle at top,
+    rgba(15, 23, 42, 0.75),
+    rgba(0, 0, 0, 0.55)
+  );
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+
+#overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#overlay-inner {
+  text-align: center;
+}
+
+#title {
+  font-size: 1.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0 0 0.75rem;
+}
+
+#subtitle {
+  font-size: 0.9rem;
+  color: #cbd5f5;
+  margin-bottom: 1.6rem;
+}
+
+/* Enter button – clean but not overkill */
+
+#enter-button {
+  padding: 0.9rem 3.2rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  background: linear-gradient(135deg, #2563eb, #020617);
+  color: #e5f0ff;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 22px rgba(59, 130, 246, 0.7),
+    0 0 60px rgba(15, 23, 42, 0.8);
+  transition:
+    transform 0.15s ease-out,
+    box-shadow 0.15s ease-out,
+    background 0.2s ease-out,
+    border-color 0.2s ease-out;
+}
+
+#enter-button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.35), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+
+#enter-button:hover {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow:
+    0 0 28px rgba(59, 130, 246, 0.9),
+    0 0 90px rgba(37, 99, 235, 0.7);
+  border-color: rgba(224, 231, 255, 1);
+}
+
+#enter-button:hover::before {
+  opacity: 1;
+}
+
+#enter-button:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow:
+    0 0 18px rgba(59, 130, 246, 0.6),
+    0 0 50px rgba(15, 23, 42, 0.8);
+}
+
+#planet-panel {
+  position: fixed;
+  top: 50%;
+  right: 40px;
+  width: 350px;
+  max-height: 70vh;
+  background: rgba(4, 8, 24, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  border-radius: 18px;
+  padding: 25px;
+  color: white;
+  font-family: monospace;
+  transform: translate(120%, -50%);
+  transition: transform 0.6s ease, opacity 0.4s ease;
+  z-index: 30;
+  overflow-y: auto;
+  opacity: 0;
+}
+
+#planet-panel.show {
+  transform: translate(0%, -50%);
+  opacity: 1;
+}
+
+#planet-panel h1 {
+  font-size: 24px;
+  margin-bottom: 12px;
+  color: #00ffcc;
+}
+
+#planet-panel p {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+#planet-panel-content {
+  font-family: "JetBrains Mono", monospace;
+  color: #00ffcc;
+  text-shadow: 0 0 4px #00ffccaa;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+/* --- TOP NAVIGATION BAR --- */
+
+#top-nav {
+  position: fixed;
+  top: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 35px;
+  z-index: 50;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.nav-item {
+  font-family: "Inter", sans-serif;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #ffffffcc;
+  cursor: pointer;
+  position: relative;
+  padding-bottom: 4px;
+  transition: color 0.25s ease;
+}
+
+/* Hover brightness */
+.nav-item:hover {
+  color: #ffffff;
+}
+
+/* Underline animation */
+.nav-item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0%;
+  height: 2px;
+  background: white;
+  transition: width 0.25s ease;
+}
+
+.nav-item:hover::after {
+  width: 100%;
+}
+
+/* Make it visible */
+#top-nav.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Planet panel content defaults */
+#planet-panel-content {
+  font-family: "JetBrains Mono", monospace;
+  color: #00ffcc;
+  text-shadow: 0 0 4px #00ffccaa;
+  white-space: normal;        /* default for lists */
+  line-height: 1.4;
+}
+
+/* Hacker mode (About / CV / Contact) */
+#planet-panel-content.hacker-mode {
+  white-space: pre-wrap;      /* keep newlines for hacker text */
+}
+
+.panel-links {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  white-space: normal;
+}
+
+.panel-links a {
+  color: #00ffcc;
+  text-decoration: none;
+  font-size: 13px;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.panel-links a:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* Left project detail panel */
+#project-detail {
+  position: fixed;
+  top: 50%;
+  left: 40px;
+  width: 360px;
+  max-height: 78vh;
+  transform: translate(-120%, -50%);
+  background: rgba(4, 8, 24, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  border-radius: 18px;
+  padding: 24px;
+  color: #e2f3ff;
+  font-family: "JetBrains Mono", monospace;
+  overflow-y: auto;
+  opacity: 0;
+  transition: transform 0.5s ease, opacity 0.4s ease;
+  z-index: 40;
+}
+
+#project-detail.show {
+  transform: translate(0%, -50%);
+  opacity: 1;
+}
+
+/* Project list header */
+#planet-panel .pp-title {
+  font-size: 18px;
+  margin: 0 0 6px;
+  color: #00f5ff;
+}
+
+#planet-panel .pp-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0 0 10px;
+}
+
+/* Project list items */
+.project-list-item {
+  padding: 7px 8px;
+  margin-bottom: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(148,163,184,0.4);
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.12s ease, border-color 0.18s ease;
+}
+
+.project-list-item:hover {
+  background: rgba(15,23,42,0.9);
+  border-color: rgba(248,250,252,0.7);
+  transform: translateX(2px);
+}
+
+.project-list-item .proj-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.proj-index {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.proj-name {
+  font-size: 14px;
+  color: #e5f3ff;
+}
+
+.proj-tagline {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Detail panel typography */
+#project-detail h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: #e5f3ff;
+}
+
+#project-detail .proj-sub {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #7dd3fc;
+}
+
+#project-detail .proj-body p {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.proj-tech-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.pill {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.9);
+  font-size: 11px;
+  color: #e5f3ff;
+}
+
+.btn-ghost {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #38bdf8;
+  background: transparent;
+  color: #e0f2fe;
+  font-size: 12px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.btn-ghost:hover {
+  background: rgba(56,189,248,0.12);
+}
+
+.proj-screenshot-placeholder {
+  margin-top: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px dashed rgba(148,163,184,0.6);
+  font-size: 11px;
+  color: #94a3b8;
+}
