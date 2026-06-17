@@ -47,6 +47,10 @@ export function setupInteractions(camera, planets, dom, sun) {
   domRef.addEventListener("pointerdown", onClick);
   if (!('ontouchstart' in window)) {
     domRef.addEventListener("wheel", onWheel, { passive: true });
+  } else {
+    domRef.addEventListener("touchstart", onTouchStart, { passive: true });
+    domRef.addEventListener("touchmove", onTouchMove, { passive: false });
+    domRef.addEventListener("touchend", onTouchEnd, { passive: true });
   }
 
   // idle hint element
@@ -194,6 +198,34 @@ function clearHover() {
   }
   hovered = null;
   domRef.style.cursor = "default";
+}
+
+// ------------------- PINCH ZOOM (mobile) -------------------
+let lastPinchDist = null;
+
+function getPinchDist(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function onTouchStart(e) {
+  if (e.touches.length === 2) lastPinchDist = getPinchDist(e.touches);
+}
+
+function onTouchMove(e) {
+  if (e.touches.length !== 2 || lastPinchDist === null) return;
+  e.preventDefault(); // stop browser pinch-zoom
+  if (isZooming || follow.active) return;
+  const dist = getPinchDist(e.touches);
+  const delta = dist - lastPinchDist;
+  lastPinchDist = dist;
+  markInteraction();
+  zoomVel += delta * 4;
+}
+
+function onTouchEnd(e) {
+  if (e.touches.length < 2) lastPinchDist = null;
 }
 
 // ------------------- SCROLL ZOOM -------------------
