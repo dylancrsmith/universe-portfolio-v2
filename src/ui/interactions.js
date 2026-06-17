@@ -11,7 +11,6 @@ let hovered = null;
 let isZooming = false;
 let zoomVel = 0;
 
-// idle hint
 let hintEl = null;
 let lastInteraction = Date.now();
 
@@ -28,6 +27,18 @@ const follow = {
   active: false
 };
 
+// drag orbit state
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragMoved = false;
+const DRAG_THRESHOLD = 5;
+
+// keyboard orbit state
+const keys = {};
+window.addEventListener("keydown", e => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener("keyup",   e => { keys[e.key.toLowerCase()] = false; });
+
 // ------------------- SETUP -------------------
 export function setupInteractions(camera, planets, dom, sun) {
   cameraRef = camera;
@@ -42,10 +53,14 @@ export function setupInteractions(camera, planets, dom, sun) {
     p.userData.baseEmissive = p.material.emissiveIntensity ?? 0.3;
   });
 
-  domRef.addEventListener("pointermove", onHover);
-  domRef.addEventListener("pointerleave", clearHover);
-  domRef.addEventListener("pointerdown", onClick);
-  if (!('ontouchstart' in window)) {
+  const isTouch = 'ontouchstart' in window;
+
+  if (!isTouch) {
+    domRef.addEventListener("pointermove", onPointerMove);
+    domRef.addEventListener("pointerleave", clearHover);
+    domRef.addEventListener("pointerdown", onPointerDown);
+    domRef.addEventListener("pointerup", onPointerUp);
+    domRef.addEventListener("pointercancel", onPointerCancel);
     domRef.addEventListener("wheel", onWheel, { passive: true });
   } else {
     domRef.addEventListener("touchstart", onTouchStart, { passive: true });
@@ -53,13 +68,11 @@ export function setupInteractions(camera, planets, dom, sun) {
     domRef.addEventListener("touchend", onTouchEnd, { passive: true });
   }
 
-  // idle hint element
   hintEl = document.createElement("div");
   hintEl.id = "idle-hint";
   hintEl.textContent = "↑ click a planet to explore";
   document.body.appendChild(hintEl);
 
-  // check idle every second
   setInterval(() => {
     if (isZooming || follow.active) return;
     if (Date.now() - lastInteraction > 4000) {
@@ -163,11 +176,11 @@ function backToHome() {
   });
 }
 
-// ------------------- HOVER -------------------
-function onHover(e) {
+// ------------------- HOVER HIGHLIGHT -------------------
+function updateHover(clientX, clientY) {
   const rect = domRef.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
   raycaster.setFromCamera(mouse, cameraRef);
 
@@ -200,7 +213,61 @@ function clearHover() {
   domRef.style.cursor = "default";
 }
 
-// ------------------- PINCH ZOOM (mobile) -------------------
+// ------------------- DESKTOP POINTER EVENTS -------------------
+function onPointerDown(e) {
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragMoved = false;
+}
+
+function onPointerMove(e) {
+  updateHover(e.clientX, e.clientY);
+
+  if (!isDragging || isZooming || follow.active) return;
+
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+
+  if (!dragMoved && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+    dragMoved = true;
+  }
+
+  if (dragMoved) {
+    orbitCamera(dx * 0.004, dy * 0.003);
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    domRef.style.cursor = "grabbing";
+    markInteraction();
+  }
+}
+
+function onPointerUp(e) {
+  if (!dragMoved && !isZooming && !follow.active) {
+    const rect = domRef.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, cameraRef);
+
+    const hits = raycaster.intersectObjects([...planetsRef, sunRef]);
+    const hit = hits[0];
+    if (hit && planetsRef.includes(hit.object)) {
+      zoomToPlanet(hit.object);
+    }
+  }
+
+  isDragging = false;
+  dragMoved = false;
+  domRef.style.cursor = hovered ? "pointer" : "default";
+}
+
+function onPointerCancel() {
+  isDragging = false;
+  dragMoved = false;
+  clearHover();
+}
+
+// ------------------- TOUCH EVENTS (mobile) -------------------
 let lastPinchDist = null;
 
 function getPinchDist(touches) {
@@ -210,22 +277,65 @@ function getPinchDist(touches) {
 }
 
 function onTouchStart(e) {
-  if (e.touches.length === 2) lastPinchDist = getPinchDist(e.touches);
+  if (e.touches.length === 2) {
+    isDragging = false;
+    lastPinchDist = getPinchDist(e.touches);
+  } else if (e.touches.length === 1) {
+    lastPinchDist = null;
+    isDragging = true;
+    dragStartX = e.touches[0].clientX;
+    dragStartY = e.touches[0].clientY;
+    dragMoved = false;
+  }
 }
 
 function onTouchMove(e) {
-  if (e.touches.length !== 2 || lastPinchDist === null) return;
-  e.preventDefault(); // stop browser pinch-zoom
-  if (isZooming || follow.active) return;
-  const dist = getPinchDist(e.touches);
-  const delta = dist - lastPinchDist;
-  lastPinchDist = dist;
-  markInteraction();
-  zoomVel += delta * 4;
+  if (e.touches.length === 2) {
+    if (lastPinchDist === null) return;
+    e.preventDefault();
+    if (isZooming || follow.active) return;
+    const dist = getPinchDist(e.touches);
+    const delta = dist - lastPinchDist;
+    lastPinchDist = dist;
+    markInteraction();
+    zoomVel += delta * 4;
+  } else if (e.touches.length === 1 && isDragging && !isZooming && !follow.active) {
+    const dx = e.touches[0].clientX - dragStartX;
+    const dy = e.touches[0].clientY - dragStartY;
+
+    if (!dragMoved && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+      dragMoved = true;
+    }
+
+    if (dragMoved) {
+      e.preventDefault();
+      orbitCamera(dx * 0.005, dy * 0.004);
+      dragStartX = e.touches[0].clientX;
+      dragStartY = e.touches[0].clientY;
+      markInteraction();
+    }
+  }
 }
 
 function onTouchEnd(e) {
   if (e.touches.length < 2) lastPinchDist = null;
+
+  if (e.touches.length === 0) {
+    if (!dragMoved && !isZooming && !follow.active) {
+      const touch = e.changedTouches[0];
+      const rect = domRef.getBoundingClientRect();
+      mouse.x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, cameraRef);
+      const hits = raycaster.intersectObjects([...planetsRef, sunRef]);
+      const hit = hits[0];
+      if (hit && planetsRef.includes(hit.object)) {
+        zoomToPlanet(hit.object);
+      }
+    }
+    isDragging = false;
+    dragMoved = false;
+  }
 }
 
 // ------------------- SCROLL ZOOM -------------------
@@ -240,24 +350,28 @@ function markInteraction() {
   if (hintEl) hintEl.classList.remove("visible");
 }
 
-// ------------------- CLICK → ZOOM -------------------
-function onClick(e) {
-  if (isZooming || follow.active) return;
+// ------------------- ORBIT CAMERA -------------------
+function orbitCamera(deltaTheta, deltaPhi) {
+  const pivot = sunRef.position;
+  const offset = cameraRef.position.clone().sub(pivot);
 
-  const rect = domRef.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  const r = offset.length();
+  let theta = Math.atan2(offset.x, offset.z);
+  let phi = Math.acos(Math.max(-1, Math.min(1, offset.y / r)));
 
-  raycaster.setFromCamera(mouse, cameraRef);
+  theta -= deltaTheta;
+  phi = Math.max(0.1, Math.min(Math.PI * 0.45, phi + deltaPhi));
 
-  // Include the sun so occluded planets can't be clicked
-  const hits = raycaster.intersectObjects([...planetsRef, sunRef]);
-  const hit = hits[0];
-  if (!hit || !planetsRef.includes(hit.object)) return;
+  cameraRef.position.set(
+    pivot.x + r * Math.sin(phi) * Math.sin(theta),
+    pivot.y + r * Math.cos(phi),
+    pivot.z + r * Math.sin(phi) * Math.cos(theta)
+  );
 
-  zoomToPlanet(hit.object);
+  cameraRef.lookAt(pivot);
 }
 
+// ------------------- ZOOM TO PLANET -------------------
 export function focusOnPlanet(name) {
   if (isZooming || follow.active) return;
   const planet = planetsRef.find(p => p.name === name);
@@ -276,15 +390,11 @@ function zoomToPlanet(planet) {
   follow.target = planet;
   follow.active = false;
 
-  // Freeze the planet so we can aim at a fixed point
   const savedSpeed = planet.userData.orbitSpeed;
   planet.userData.orbitSpeed = 0;
 
   const planetPos = planet.position.clone();
 
-  // Approach from the camera's side of the planet in XZ — camera always moves
-  // toward the planet naturally. Y=150 keeps the whole flight path above the
-  // sun sphere's top (Y=90) so we never clip through it.
   const toCam = new THREE.Vector3()
     .subVectors(cameraRef.position, planetPos)
     .setY(0)
@@ -301,7 +411,6 @@ function zoomToPlanet(planet) {
     onUpdate: () => cameraRef.lookAt(planetPos),
     onComplete: () => {
       planet.userData.orbitSpeed = savedSpeed;
-      // Record the offset so we can translate with the planet as it continues orbiting
       follow.offset.copy(cameraRef.position).sub(planet.position);
       follow.active = true;
       isZooming = false;
@@ -311,9 +420,18 @@ function zoomToPlanet(planet) {
   });
 }
 
-// ------------------- UPDATE (follow planet + scroll zoom) -------------------
+// ------------------- UPDATE LOOP -------------------
 export function updateInteractions() {
-  // Scroll zoom — only in home view, clamped by distance to sun
+  // Keyboard orbit — WASD + arrow keys
+  if (!isZooming && !follow.active) {
+    const speed = 0.018;
+    if (keys["a"] || keys["arrowleft"])  orbitCamera(-speed, 0);
+    if (keys["d"] || keys["arrowright"]) orbitCamera(speed, 0);
+    if (keys["w"] || keys["arrowup"])    orbitCamera(0, -speed);
+    if (keys["s"] || keys["arrowdown"])  orbitCamera(0,  speed);
+    if (Object.values(keys).some(Boolean)) markInteraction();
+  }
+
   if (!follow.active && Math.abs(zoomVel) > 0.5) {
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cameraRef.quaternion);
     const next = cameraRef.position.clone().addScaledVector(dir, zoomVel * 0.04);
