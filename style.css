@@ -469,6 +469,23 @@ canvas#universe {
     transform: translateY(0);
   }
 
+  /* Smaller panel fonts */
+  #planet-panel-content {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  #planet-panel h1 { font-size: 16px; }
+  #planet-panel .pp-title { font-size: 14px; }
+  #planet-panel .pp-hint { font-size: 10px; }
+  .proj-name { font-size: 12px; }
+  .proj-tagline { font-size: 10px; }
+  #project-detail h2 { font-size: 14px; }
+  #project-detail .proj-sub { font-size: 10px; }
+  #project-detail .proj-body p { font-size: 11px; }
+  .pill { font-size: 9px; }
+  .btn-ghost { font-size: 11px; }
+  .panel-links a { font-size: 11px; }
+
   /* Idle hint above home indicator */
   #idle-hint {
     bottom: 24px;
