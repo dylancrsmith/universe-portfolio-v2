@@ -169,6 +169,7 @@ function showProjectDetail(project) {
   if (!leftPanel || !leftContent) return;
 
   leftContent.innerHTML = `
+    <button class="back-to-list">← Projects</button>
     <div class="proj-header">
       <h2>${project.name}</h2>
       <p class="proj-sub">${project.tagline}</p>
@@ -194,6 +195,10 @@ function showProjectDetail(project) {
   `;
 
   leftPanel.classList.add("show");
+
+  leftContent.querySelector(".back-to-list").addEventListener("click", () => {
+    leftPanel.classList.remove("show");
+  });
 }
 
 // ---------- HACKER TEXT ----------

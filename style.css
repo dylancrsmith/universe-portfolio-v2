@@ -407,6 +407,20 @@ canvas#universe {
   background: rgba(56,189,248,0.12);
 }
 
+.back-to-list {
+  background: none;
+  border: none;
+  color: #7dd3fc;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 0 12px;
+  display: block;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.back-to-list:hover { opacity: 1; }
+
 .proj-screenshot-placeholder {
   margin-top: 6px;
   padding: 10px;
