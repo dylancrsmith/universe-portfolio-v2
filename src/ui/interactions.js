@@ -331,7 +331,6 @@ function onWheel(e) {
 }
 
 function markInteraction() {
-  lastInteraction = Date.now();
   window.dispatchEvent(new Event("user-interacted"));
 }
 
