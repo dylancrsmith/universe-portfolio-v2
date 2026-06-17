@@ -1,7 +1,8 @@
 import * as THREE from "three";
 
 export function createNebula(scene) {
-  const count = 3000;
+  const isMobile = window.innerWidth < 768;
+  const count = isMobile ? 800 : 3000;
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
 

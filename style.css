@@ -254,6 +254,32 @@ canvas#universe {
   text-decoration: underline;
 }
 
+/* Idle hint */
+#idle-hint {
+  position: fixed;
+  bottom: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.55);
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s ease;
+  z-index: 20;
+}
+
+#idle-hint.visible {
+  opacity: 1;
+  animation: hint-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.85; }
+}
+
 /* Left project detail panel */
 #project-detail {
   position: fixed;
@@ -388,4 +414,65 @@ canvas#universe {
   border: 1px dashed rgba(148,163,184,0.6);
   font-size: 11px;
   color: #94a3b8;
+}
+
+/* ===================== MOBILE ===================== */
+@media (max-width: 768px) {
+
+  /* Intro screen */
+  #title { font-size: 1.3rem; }
+  #subtitle { font-size: 0.8rem; }
+
+  /* Top nav — tighter */
+  #top-nav {
+    gap: 18px;
+    top: 16px;
+  }
+  .nav-item {
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Right panel → bottom sheet */
+  #planet-panel {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    max-height: 55vh;
+    border-radius: 18px 18px 0 0;
+    padding: 20px 20px 32px;
+    transform: translateY(110%);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #planet-panel.show {
+    transform: translateY(0);
+  }
+
+  /* Left panel → bottom sheet on top */
+  #project-detail {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 60vh;
+    border-radius: 18px 18px 0 0;
+    padding: 20px 20px 32px;
+    transform: translateY(110%);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #project-detail.show {
+    transform: translateY(0);
+  }
+
+  /* Idle hint above home indicator */
+  #idle-hint {
+    bottom: 24px;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+  }
 }

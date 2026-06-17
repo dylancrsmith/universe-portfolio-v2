@@ -11,6 +11,10 @@ let hovered = null;
 let isZooming = false;
 let zoomVel = 0;
 
+// idle hint
+let hintEl = null;
+let lastInteraction = Date.now();
+
 let prePlanetPos = null;
 let prePlanetTarget = null;
 
@@ -41,7 +45,23 @@ export function setupInteractions(camera, planets, dom, sun) {
   domRef.addEventListener("pointermove", onHover);
   domRef.addEventListener("pointerleave", clearHover);
   domRef.addEventListener("pointerdown", onClick);
-  domRef.addEventListener("wheel", onWheel, { passive: true });
+  if (!('ontouchstart' in window)) {
+    domRef.addEventListener("wheel", onWheel, { passive: true });
+  }
+
+  // idle hint element
+  hintEl = document.createElement("div");
+  hintEl.id = "idle-hint";
+  hintEl.textContent = "↑ click a planet to explore";
+  document.body.appendChild(hintEl);
+
+  // check idle every second
+  setInterval(() => {
+    if (isZooming || follow.active) return;
+    if (Date.now() - lastInteraction > 4000) {
+      hintEl.classList.add("visible");
+    }
+  }, 1000);
 
   document.querySelectorAll("#top-nav .nav-item").forEach(item => {
     item.addEventListener("click", () => {
@@ -179,7 +199,13 @@ function clearHover() {
 // ------------------- SCROLL ZOOM -------------------
 function onWheel(e) {
   if (isZooming || follow.active) return;
+  markInteraction();
   zoomVel -= e.deltaY * 1.5;
+}
+
+function markInteraction() {
+  lastInteraction = Date.now();
+  if (hintEl) hintEl.classList.remove("visible");
 }
 
 // ------------------- CLICK → ZOOM -------------------
@@ -209,6 +235,7 @@ export function focusOnPlanet(name) {
 function zoomToPlanet(planet) {
   hideTopNav();
   hideAllPanels();
+  markInteraction();
   isZooming = true;
 
   prePlanetPos = cameraRef.position.clone();
@@ -254,10 +281,16 @@ function zoomToPlanet(planet) {
 
 // ------------------- UPDATE (follow planet + scroll zoom) -------------------
 export function updateInteractions() {
-  // Scroll zoom — only in home view
+  // Scroll zoom — only in home view, clamped by distance to sun
   if (!follow.active && Math.abs(zoomVel) > 0.5) {
     const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(cameraRef.quaternion);
-    cameraRef.position.addScaledVector(dir, zoomVel * 0.04);
+    const next = cameraRef.position.clone().addScaledVector(dir, zoomVel * 0.04);
+    const dist = next.distanceTo(sunRef.position);
+    if (dist > 450 && dist < 1600) {
+      cameraRef.position.copy(next);
+    } else {
+      zoomVel = 0;
+    }
     zoomVel *= 0.85;
   } else if (!follow.active) {
     zoomVel = 0;
