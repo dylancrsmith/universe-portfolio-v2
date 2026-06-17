@@ -11,9 +11,6 @@ let hovered = null;
 let isZooming = false;
 let zoomVel = 0;
 
-let hintEl = null;
-let lastInteraction = Date.now();
-
 let prePlanetPos = null;
 let prePlanetTarget = null;
 
@@ -67,18 +64,6 @@ export function setupInteractions(camera, planets, dom, sun) {
     domRef.addEventListener("touchmove", onTouchMove, { passive: false });
     domRef.addEventListener("touchend", onTouchEnd, { passive: true });
   }
-
-  hintEl = document.createElement("div");
-  hintEl.id = "idle-hint";
-  hintEl.textContent = "↑ click a planet to explore";
-  document.body.appendChild(hintEl);
-
-  setInterval(() => {
-    if (isZooming || follow.active) return;
-    if (Date.now() - lastInteraction > 4000) {
-      hintEl.classList.add("visible");
-    }
-  }, 1000);
 
   document.querySelectorAll("#top-nav .nav-item").forEach(item => {
     item.addEventListener("click", () => {
@@ -347,7 +332,7 @@ function onWheel(e) {
 
 function markInteraction() {
   lastInteraction = Date.now();
-  if (hintEl) hintEl.classList.remove("visible");
+  window.dispatchEvent(new Event("user-interacted"));
 }
 
 // ------------------- ORBIT CAMERA -------------------

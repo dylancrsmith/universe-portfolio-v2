@@ -48,6 +48,37 @@ export function setupUI(camera, sun) {
   });
 }
 
+let controlsHintEl = null;
+
+function showControlsHint() {
+  const isTouch = 'ontouchstart' in window;
+  controlsHintEl = document.createElement("div");
+  controlsHintEl.id = "controls-hint";
+
+  if (isTouch) {
+    controlsHintEl.innerHTML =
+      "<span>swipe to orbit</span>" +
+      "<span>pinch to zoom</span>" +
+      "<span>tap a planet to explore</span>";
+  } else {
+    controlsHintEl.innerHTML =
+      "<span>wasd to orbit</span>" +
+      "<span>scroll to zoom</span>" +
+      "<span>click a planet to explore</span>";
+  }
+
+  document.body.appendChild(controlsHintEl);
+  requestAnimationFrame(() => controlsHintEl.classList.add("visible"));
+
+  window.addEventListener("user-interacted", dismissControlsHint, { once: true });
+}
+
+function dismissControlsHint() {
+  if (!controlsHintEl) return;
+  controlsHintEl.classList.remove("visible");
+  setTimeout(() => { controlsHintEl?.remove(); controlsHintEl = null; }, 1200);
+}
+
 /**
  * Called each frame from main.js
  */
@@ -62,6 +93,7 @@ export function updateUI(deltaTime) {
     introActive = false;
     setZooming(false);
     showTopNav();
+    showControlsHint();
     return;
   }
 
