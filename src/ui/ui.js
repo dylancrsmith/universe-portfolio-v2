@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { setWarpSpeed } from "../universe/warpStars.js";
-import { showTopNav, setZooming } from "./interactions.js";
+import { showTopNav, setZooming, showControlsHint } from "./interactions.js";
 
 let overlayEl;
 let enterBtn;
@@ -46,37 +46,6 @@ export function setupUI(camera, sun) {
 
     overlayEl.classList.add("hidden");
   });
-}
-
-let controlsHintEl = null;
-
-function showControlsHint() {
-  const isTouch = 'ontouchstart' in window;
-  controlsHintEl = document.createElement("div");
-  controlsHintEl.id = "controls-hint";
-
-  if (isTouch) {
-    controlsHintEl.innerHTML =
-      "<span>swipe to orbit</span>" +
-      "<span>pinch to zoom</span>" +
-      "<span>tap a planet to explore</span>";
-  } else {
-    controlsHintEl.innerHTML =
-      "<span>wasd to orbit</span>" +
-      "<span>scroll to zoom</span>" +
-      "<span>click a planet to explore</span>";
-  }
-
-  document.body.appendChild(controlsHintEl);
-  requestAnimationFrame(() => controlsHintEl.classList.add("visible"));
-
-  window.addEventListener("user-interacted", dismissControlsHint, { once: true });
-}
-
-function dismissControlsHint() {
-  if (!controlsHintEl) return;
-  controlsHintEl.classList.remove("visible");
-  setTimeout(() => { controlsHintEl?.remove(); controlsHintEl = null; }, 1200);
 }
 
 /**

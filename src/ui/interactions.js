@@ -24,6 +24,35 @@ const follow = {
   active: false
 };
 
+// controls hint
+let controlsHintEl = null;
+
+export function showControlsHint() {
+  if (!controlsHintEl) {
+    const isTouch = 'ontouchstart' in window;
+    controlsHintEl = document.createElement("div");
+    controlsHintEl.id = "controls-hint";
+    if (isTouch) {
+      controlsHintEl.innerHTML =
+        "<span>swipe to orbit</span>" +
+        "<span>pinch to zoom</span>" +
+        "<span>tap a planet to explore</span>";
+    } else {
+      controlsHintEl.innerHTML =
+        "<span>wasd to orbit</span>" +
+        "<span>scroll to zoom</span>" +
+        "<span>click a planet to explore</span>";
+    }
+    document.body.appendChild(controlsHintEl);
+  }
+  requestAnimationFrame(() => controlsHintEl.classList.add("visible"));
+}
+
+function hideControlsHint() {
+  if (!controlsHintEl) return;
+  controlsHintEl.classList.remove("visible");
+}
+
 // drag orbit state
 let isDragging = false;
 let dragStartX = 0;
@@ -156,6 +185,7 @@ function backToHome() {
     onComplete: () => {
       isZooming = false;
       showTopNav();
+      showControlsHint();
       hideBackButton();
     }
   });
@@ -330,9 +360,7 @@ function onWheel(e) {
   zoomVel -= e.deltaY * 1.5;
 }
 
-function markInteraction() {
-  window.dispatchEvent(new Event("user-interacted"));
-}
+function markInteraction() {}
 
 // ------------------- ORBIT CAMERA -------------------
 function orbitCamera(deltaTheta, deltaPhi) {
@@ -363,6 +391,7 @@ export function focusOnPlanet(name) {
 }
 
 function zoomToPlanet(planet) {
+  hideControlsHint();
   hideTopNav();
   hideAllPanels();
   markInteraction();
