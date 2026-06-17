@@ -2,6 +2,8 @@ import * as THREE from "three";
 
 
 export function createStarfield(scene) {
+  const isMobile = window.innerWidth < 768;
+
   // Far background stars (dense, tiny, big radius)
   const farStarCount = 8000;
   const farPositions = new Float32Array(farStarCount * 3);
@@ -15,7 +17,7 @@ export function createStarfield(scene) {
 
   const farMat = new THREE.PointsMaterial({
     color: 0xffffff,
-    size: 1.4,
+    size: isMobile ? 2.5 : 1.4,
     transparent: true,
     opacity: 0.8,
     blending: THREE.AdditiveBlending,
@@ -39,7 +41,7 @@ export function createStarfield(scene) {
 
   const nearMat = new THREE.PointsMaterial({
     color: 0x4fc3f7,
-    size: 2.8,
+    size: isMobile ? 4.5 : 2.8,
     transparent: true,
     opacity: 0.9,
     blending: THREE.AdditiveBlending,

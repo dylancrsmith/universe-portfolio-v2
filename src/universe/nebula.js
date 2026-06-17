@@ -30,10 +30,10 @@ export function createNebula(scene) {
   geo.setAttribute("color",    new THREE.BufferAttribute(colors, 3));
 
   const mat = new THREE.PointsMaterial({
-    size: 6,
+    size: isMobile ? 10 : 6,
     vertexColors: true,
     transparent: true,
-    opacity: 0.25,
+    opacity: isMobile ? 0.4 : 0.25,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
     sizeAttenuation: true,

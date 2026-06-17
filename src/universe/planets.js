@@ -98,10 +98,11 @@ function createOrbitRing(scene, sun, orbitRadius) {
     ));
   }
   const geo = new THREE.BufferGeometry().setFromPoints(points);
+  const isMobile = window.innerWidth < 768;
   const mat = new THREE.LineBasicMaterial({
     color: 0xffffff,
     transparent: true,
-    opacity: 0.08,
+    opacity: isMobile ? 0.22 : 0.12,
   });
   scene.add(new THREE.Line(geo, mat));
 }
