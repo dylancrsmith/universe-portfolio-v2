@@ -6,6 +6,7 @@ import { setupUI, updateUI } from './ui/ui.js';
 import { initWarpStars, updateWarpStars } from './universe/warpStars.js';
 import { setupInteractions, updateInteractions } from './ui/interactions.js';
 import { setupPanels } from './ui/panels.js';
+import { setupPlanetLabels, updatePlanetLabels } from './ui/planetLabels.js';
 
 // ⭐ Parallax import (you already added this)
 import { setupStarParallax, updateStarParallax } from "./ui/starParallax.js";
@@ -33,6 +34,9 @@ setupUI(camera, sun);
 
 // Hover + click + nav interactions
 setupInteractions(camera, planets, renderer.domElement, sun);
+
+// Planet name labels
+setupPlanetLabels(planets);
 
 let prev = 0;
 function animate(t) {
@@ -73,6 +77,9 @@ function animate(t) {
 
   // Camera orbit + interactions
   updateInteractions(dt);
+
+  // Planet labels
+  updatePlanetLabels(camera, renderer);
 
   renderer.render(scene, camera);
 }
